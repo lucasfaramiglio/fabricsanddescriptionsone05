@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabric Matching Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: white;
+            height: 100vh;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .logo {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 100px;
+            height: auto;
+            z-index: 1000;
+            background: white;
+            border-radius: 20px;
+            padding: 8px;
+            box-shadow: 0 2px 8px rgba(102, 73, 162, 0.2);
+        }
+
+        .container {
+            height: calc(100vh - 20px);
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(102, 73, 162, 0.1);
+            overflow: hidden;
+            border: 1px solid #f0f0f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #664ba2 0%, #ff7f50 100%);
+            color: white;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .instructions {
+            background: #f8f9ff;
+            padding: 8px 12px;
+            margin: 8px;
+            font-size: 0.85em;
+            border-left: 4px solid #664ba2;
+            border-radius: 8px;
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 10px;
+            padding: 10px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .section-title {
+            font-size: 1em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            padding: 6px;
+            text-align: center;
+            color: #664ba2;
+            background: linear-gradient(135deg, rgba(102, 73, 162, 0.1) 0%, rgba(255, 127, 80, 0.1) 100%);
+            border-radius: 8px;
+        }
+
+        .items-container {
+            flex: 1;
+            display: grid;
+            grid-template-rows: repeat(11, 1fr);
+            gap: 6px;
+            padding: 2px;
+            overflow: hidden;
+        }
+
+        .description-item {
+            background: #f8f9ff;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 1px 3px rgba(102, 73, 162, 0.1);
+            border: 2px dashed transparent;
+            font-size: 0.75em;
+            display: flex;
+            align-items: center;
+            position: relative;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .description-item.drag-over {
+            border-color: #ff7f50;
+            background: #fff8f0;
+        }
+
+        .description-item p {
+            line-height: 1.2;
+            margin: 0;
+            padding-right: 50px;
+            flex: 1;
+        }
+
+        .fabric-item {
+            background: linear-gradient(135deg, #ff7f50, #ff9966);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            cursor: grab;
+            font-weight: bold;
+            font-size: 0.75em;
+            box-shadow: 0 1px 4px rgba(255, 127, 80, 0.3);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0;
+            max-width: 80px;
+            margin: 0 auto;
+            height: 100%;
+        }
+
+        .fabric-item:active {
+            cursor: grabbing;
+        }
+
+        .fabric-item.matched {
+            background: linear-gradient(135deg, #28a745, #34ce57);
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+        }
+
+        .fabric-item.hidden {
+            display: none;
+        }
+
+        .fabric-item.correct-answer {
+            background: linear-gradient(135deg, #664ba2, #8a6bb1);
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1;
+            display: none;
+        }
+
+        .controls {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9ff;
+            border-top: 1px solid #e6e6ff;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #664ba2, #8a6bb1);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            cursor: pointer;
+            margin: 0 4px;
+            box-shadow: 0 1px 4px rgba(102, 73, 162, 0.3);
+        }
+
+        .btn.reset {
+            background: linear-gradient(135deg, #dc3545, #fd7e14);
+        }
+
+        .btn.show-answers {
+            background: linear-gradient(135deg, #28a745, #34ce57);
+            display: none;
+        }
+
+        .score {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #664ba2;
+        }
+
+        .answer-indicator {
+            position: absolute;
+            left: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: none;
+        }
+
+        .answer-indicator.correct {
+            background: #28a745;
+            display: block;
+        }
+
+        .answer-indicator.incorrect {
+            background: #dc3545;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                width: 80px;
+            }
+            
+            .header h1 {
+                font-size: 1.2em;
+            }
+            
+            .game-area {
+                grid-template-columns: 2fr 1fr;
+            }
+            
+            .fabric-item {
+                max-width: 60px;
+                font-size: 0.7em;
+            }
+            
+            .description-item p {
+                padding-right: 40px;
+                font-size: 0.7em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <svg class="logo" viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#664ba2;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#8a6bb1;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+        <path d="M0 20 Q0 0 20 0 L320 0 Q340 0 360 20 Q380 40 380 60 Q380 80 360 100 Q340 120 320 120 L60 120 Q40 120 20 100 Q0 80 0 60 Z" fill="url(#logoGradient)"/>
+        <text x="30" y="80" font-family="Arial, sans-serif" font-size="60" font-weight="bold" fill="white">1oh</text>
+        <text x="180" y="80" font-family="Arial, sans-serif" font-size="60" font-weight="bold" fill="#ff7f50">five</text>
+    </svg>
+
+    <div class="container">
+        <div class="header">
+            <h1>🧵 Fabric Matching Game 🧵</h1>
+        </div>
+
+        <div class="instructions">
+            <p><strong>Drag and drop</strong> fabric names to their correct descriptions.</p>
+        </div>
+
+        <div class="game-area">
+            <div class="column">
+                <div class="section-title">📝 Descriptions</div>
+                <div class="items-container" id="descriptions-container">
+                    <div class="description-item" data-description="lycra-desc">
+                        <p>It is a man-made fabric. It is stretchy and often used in sports clothes.</p>
+                    </div>
+                    <div class="description-item" data-description="wool-desc">
+                        <p>It comes from sheep. People use it to make warm clothes.</p>
+                    </div>
+                    <div class="description-item" data-description="silk-desc">
+                        <p>It comes from silkworms. It is soft and shiny, and people use it for fancy clothes.</p>
+                    </div>
+                    <div class="description-item" data-description="leather-desc">
+                        <p>It comes from animal skin, usually cows. It is strong and used in shoes, jackets, and bags.</p>
+                    </div>
+                    <div class="description-item" data-description="linen-desc">
+                        <p>It comes from a plant called flax. It is light and cool, good for hot weather.</p>
+                    </div>
+                    <div class="description-item" data-description="nylon-desc">
+                        <p>It is a man-made fabric. It is strong and dries quickly.</p>
+                    </div>
+                    <div class="description-item" data-description="cotton-desc">
+                        <p>It comes from the cotton plant. It is soft and used in many everyday clothes.</p>
+                    </div>
+                    <div class="description-item" data-description="satin-desc">
+                        <p>It is smooth and shiny, like silk. It is often used for dresses and special clothes, but it can be made from silk or plastic materials.</p>
+                    </div>
+                    <div class="description-item" data-description="velvet-desc">
+                        <p>It is soft and thick. It can be made from silk, cotton, or man-made fibers, and people often use it in jackets and curtains.</p>
+                    </div>
+                    <div class="description-item" data-description="denim-desc">
+                        <p>It comes from cotton. It is heavier and stronger than regular cotton and is used to make jeans.</p>
+                    </div>
+                    <div class="description-item" data-description="polyester-desc">
+                        <p>It is a man-made fabric. It is cheap, easy to wash, and used in many clothes.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column">
+                <div class="section-title">🧵 Fabric Names</div>
+                <div class="items-container" id="fabrics-container">
+                    <div class="fabric-item" draggable="true" data-fabric="lycra">Lycra</div>
+                    <div class="fabric-item" draggable="true" data-fabric="wool">Wool</div>
+                    <div class="fabric-item" draggable="true" data-fabric="silk">Silk</div>
+                    <div class="fabric-item" draggable="true" data-fabric="leather">Leather</div>
+                    <div class="fabric-item" draggable="true" data-fabric="linen">Linen</div>
+                    <div class="fabric-item" draggable="true" data-fabric="nylon">Nylon</div>
+                    <div class="fabric-item" draggable="true" data-fabric="cotton">Cotton</div>
+                    <div class="fabric-item" draggable="true" data-fabric="satin">Satin</div>
+                    <div class="fabric-item" draggable="true" data-fabric="velvet">Velvet</div>
+                    <div class="fabric-item" draggable="true" data-fabric="denim">Denim</div>
+                    <div class="fabric-item" draggable="true" data-fabric="polyester">Polyester</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div>
+                <button class="btn" onclick="checkAnswers()">Check Answers</button>
+                <button class="btn reset" onclick="resetGame()">Reset</button>
+                <button class="btn show-answers" id="show-answers-btn" onclick="toggleAnswers()">Show Correct Answers</button>
+            </div>
+            <div class="score" id="score">Matches: 0/11</div>
+        </div>
+    </div>
+
+    <script>
+        const correctMatches = {
+            'lycra-desc': 'lycra',
+            'wool-desc': 'wool',
+            'silk-desc': 'silk',
+            'leather-desc': 'leather',
+            'linen-desc': 'linen',
+            'nylon-desc': 'nylon',
+            'cotton-desc': 'cotton',
+            'satin-desc': 'satin',
+            'velvet-desc': 'velvet',
+            'denim-desc': 'denim',
+            'polyester-desc': 'polyester'
+        };
+
+        let userMatches = {};
+        let matchedCount = 0;
+        let answersVisible = false;
+        let correctAnswerElements = [];
+
+        function initializeDragDrop() {
+            const fabrics = document.querySelectorAll('.fabric-item');
+            const descriptions = document.querySelectorAll('.description-item');
+
+            fabrics.forEach(fabric => {
+                fabric.addEventListener('dragstart', handleDragStart);
+            });
+
+            descriptions.forEach(desc => {
+                desc.addEventListener('dragover', handleDragOver);
+                desc.addEventListener('drop', handleDrop);
+                desc.addEventListener('dragenter', handleDragEnter);
+                desc.addEventListener('dragleave', handleDragLeave);
+            });
+
+            // Create correct answer indicators (initially hidden)
+            createCorrectAnswerIndicators();
+        }
+
+        function createCorrectAnswerIndicators() {
+            const container = document.getElementById('descriptions-container');
+            
+            // Clear any existing correct answer indicators
+            correctAnswerElements.forEach(el => el.remove());
+            correctAnswerElements = [];
+            
+            for (const descId in correctMatches) {
+                const descElement = document.querySelector(`[data-description="${descId}"]`);
+                const correctFabric = correctMatches[descId];
+                
+                const correctAnswer = document.createElement('div');
+                correctAnswer.className = 'fabric-item correct-answer';
+                correctAnswer.textContent = correctFabric.charAt(0).toUpperCase() + correctFabric.slice(1);
+                correctAnswer.style.display = 'none';
+                
+                descElement.appendChild(correctAnswer);
+                correctAnswerElements.push(correctAnswer);
+            }
+        }
+
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.fabric);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            const fabricName = e.dataTransfer.getData('text/plain');
+            const descriptionId = e.currentTarget.dataset.description;
+            
+            // If this description already has a match, return the old fabric first
+            if (userMatches[descriptionId]) {
+                returnFabricToPool(userMatches[descriptionId]);
+                matchedCount--;
+            }
+            
+            // Hide the dragged fabric from the pool
+            const fabricElement = document.querySelector(`.fabric-item[data-fabric="${fabricName}"]:not(.matched)`);
+            if (fabricElement) {
+                fabricElement.classList.add('hidden');
+            }
+            
+            // Add the new match
+            userMatches[descriptionId] = fabricName;
+            
+            // Create a clone for the description box
+            const fabricClone = document.createElement('div');
+            fabricClone.className = 'fabric-item matched';
+            fabricClone.textContent = fabricName;
+            fabricClone.setAttribute('data-fabric', fabricName);
+            fabricClone.setAttribute('draggable', 'true');
+            fabricClone.addEventListener('dragstart', handleDragStart);
+            fabricClone.addEventListener('click', function() {
+                returnFabricToPool(fabricName);
+                fabricClone.remove();
+                delete userMatches[descriptionId];
+                matchedCount--;
+                document.getElementById('score').textContent = `Matches: ${matchedCount}/11`;
+            });
+            
+            // Position the clone in the description box
+            e.currentTarget.appendChild(fabricClone);
+            matchedCount++;
+            
+            document.getElementById('score').textContent = `Matches: ${matchedCount}/11`;
+        }
+
+        function returnFabricToPool(fabricName) {
+            const hiddenFabrics = document.querySelectorAll(`.fabric-item[data-fabric="${fabricName}"].hidden`);
+            if (hiddenFabrics.length > 0) {
+                hiddenFabrics[0].classList.remove('hidden');
+            }
+        }
+
+        function checkAnswers() {
+            let correct = 0;
+            const total = Object.keys(correctMatches).length;
+            
+            // Clear previous indicators
+            document.querySelectorAll('.answer-indicator').forEach(ind => ind.remove());
+            
+            // Check each description
+            for (const descId in correctMatches) {
+                const descElement = document.querySelector(`[data-description="${descId}"]`);
+                const indicator = document.createElement('div');
+                indicator.className = 'answer-indicator';
+                
+                if (userMatches[descId] === correctMatches[descId]) {
+                    correct++;
+                    indicator.classList.add('correct');
+                } else {
+                    indicator.classList.add('incorrect');
+                }
+                
+                descElement.appendChild(indicator);
+            }
+            
+            // Show feedback and answers button
+            const feedback = correct === total ? 
+                '🎉 Excellent! You got all the answers correct! 🎉' : 
+                `Good try! You got ${correct} out of ${total} correct. Keep trying!`;
+            
+            alert(feedback);
+            
+            // Show the answers toggle button
+            document.getElementById('show-answers-btn').style.display = 'inline-block';
+        }
+
+        function toggleAnswers() {
+            answersVisible = !answersVisible;
+            const btn = document.getElementById('show-answers-btn');
+            btn.textContent = answersVisible ? 'Hide Correct Answers' : 'Show Correct Answers';
+            
+            // Toggle correct answer indicators
+            document.querySelectorAll('.correct-answer').forEach(el => {
+                el.style.display = answersVisible ? 'flex' : 'none';
+            });
+        }
+
+        function resetGame() {
+            // Clear user matches
+            userMatches = {};
+            matchedCount = 0;
+            
+            // Remove all matched fabric clones
+            document.querySelectorAll('.matched').forEach(matched => {
+                matched.remove();
+            });
+            
+            // Remove answer indicators
+            document.querySelectorAll('.answer-indicator').forEach(ind => ind.remove());
+            
+            // Show all original fabric items
+            document.querySelectorAll('.fabric-item').forEach(fabric => {
+                fabric.classList.remove('hidden');
+            });
+            
+            // Hide answers button and correct answers
+            document.getElementById('show-answers-btn').style.display = 'none';
+            document.querySelectorAll('.correct-answer').forEach(el => {
+                el.style.display = 'none';
+            });
+            answersVisible = false;
+            
+            // Reset score
+            document.getElementById('score').textContent = 'Matches: 0/11';
+        }
+
+        // Initialize the game when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDragDrop();
+        });
+    </script>
+</body>
+</html>
